@@ -8,23 +8,31 @@ import { getConfig } from './config';
 import { fetchJSON } from './fetcher';
 import { LRUCache } from './cache';
 
-let cache = new LRUCache<string, unknown>(getConfig().cacheSize);
+let cache: LRUCache<string, unknown> | null = null;
+
+function getCache(): LRUCache<string, unknown> {
+  if (!cache) {
+    cache = new LRUCache<string, unknown>(getConfig().cacheSize);
+  }
+  return cache;
+}
 
 /**
- * Reinitialize cache (called when config changes or manually)
+ * Clear the cache (forces re-initialization on next use, picking up any config changes)
  */
 export function clearCache(): void {
-  cache = new LRUCache<string, unknown>(getConfig().cacheSize);
+  cache = null;
 }
 
 /**
  * Load JSON with caching
  */
 async function loadCached<T>(key: string): Promise<T> {
-  const cached = cache.get(key);
+  const c = getCache();
+  const cached = c.get(key);
   if (cached !== undefined) return cached as T;
   const data = await fetchJSON<T>(`/data/${key}`);
-  cache.set(key, data);
+  c.set(key, data);
   return data;
 }
 
@@ -122,12 +130,10 @@ export async function getCityById(
  */
 export async function getAllCitiesOfCountry(countryCode: string): Promise<ICity[]> {
   const states = await getStatesOfCountry(countryCode);
-  const allCities: ICity[] = [];
-  for (const state of states) {
-    const cities = await getCitiesOfState(countryCode, state.iso2);
-    allCities.push(...cities);
-  }
-  return allCities;
+  const cityArrays = await Promise.all(
+    states.map((state) => getCitiesOfState(countryCode, state.iso2)),
+  );
+  return cityArrays.flat();
 }
 
 /**

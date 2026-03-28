@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { fetchJSON } from '../../src/fetcher';
 import { resetConfiguration, configure } from '../../src/config';
-import { NetworkError } from '../../src/errors';
+import { NetworkError, TimeoutError } from '../../src/errors';
 
 describe('fetchJSON', () => {
   beforeEach(() => {
@@ -82,5 +82,18 @@ describe('fetchJSON', () => {
     await expect(fetchJSON('/data/countries.json'))
       .rejects
       .toThrow(TypeError);
+  });
+
+  it('throws TimeoutError on abort timeout', async () => {
+    const domError = new DOMException('Signal timed out', 'TimeoutError');
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(domError));
+
+    try {
+      await fetchJSON('/data/countries.json');
+      expect.unreachable('Should have thrown');
+    } catch (error) {
+      expect(error).toBeInstanceOf(TimeoutError);
+      expect((error as any).timeout).toBe(5000);
+    }
   });
 });

@@ -7,6 +7,7 @@ import {
   getCitiesOfState,
   getCityById,
   getAllCitiesOfCountry,
+  getAllCitiesInWorld,
   clearCache,
 } from '../../src/loaders';
 import { configure, resetConfiguration } from '../../src/config';
@@ -162,6 +163,13 @@ describe('loaders', () => {
       expect(result).toHaveLength(3);
       expect(result.map(c => c.name)).toContain('TestVille');
       expect(result.map(c => c.name)).toContain('AnotherCity');
+    });
+  });
+
+  describe('getAllCitiesInWorld', () => {
+    it('loads cities from all countries', async () => {
+      const result = await getAllCitiesInWorld();
+      expect(result).toHaveLength(3);
     });
   });
 });

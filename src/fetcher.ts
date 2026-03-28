@@ -3,7 +3,7 @@
  */
 
 import { getConfig } from './config';
-import { NetworkError } from './errors';
+import { NetworkError, TimeoutError } from './errors';
 
 /**
  * Fetch a JSON resource from the configured CDN
@@ -15,13 +15,24 @@ export async function fetchJSON<T>(path: string): Promise<T> {
   const config = getConfig();
   const url = `${config.baseURL}${path}`;
 
-  const response = await fetch(url, {
-    signal: AbortSignal.timeout(config.timeout),
-    headers: {
-      'Accept': 'application/json',
-      ...config.headers,
-    },
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      signal: AbortSignal.timeout(config.timeout),
+      headers: {
+        'Accept': 'application/json',
+        ...config.headers,
+      },
+    });
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'TimeoutError') {
+      throw new TimeoutError(
+        `Request timed out after ${config.timeout}ms: ${path}`,
+        config.timeout,
+      );
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     throw new NetworkError(

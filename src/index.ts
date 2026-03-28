@@ -40,4 +40,3 @@ export {
   getCountryTimezones,
 } from './utils';
 
-export { getCountries as default } from './loaders';
