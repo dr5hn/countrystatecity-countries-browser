@@ -111,12 +111,20 @@ jobs:
       - name: Check for changes
         id: check-changes
         run: |
-          git add src/data
+          git add src/data package.json package-lock.json
           if git diff --cached --quiet; then
             echo "changed=false" >> $GITHUB_OUTPUT
           else
             echo "changed=true" >> $GITHUB_OUTPUT
           fi
+
+      - name: Bump patch version
+        if: steps.check-changes.outputs.changed == 'true'
+        id: bump-version
+        run: |
+          NEW_VERSION=$(npm version patch --no-git-tag-version)
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "Bumped version to $NEW_VERSION"
 
       - name: Create Pull Request
         if: steps.check-changes.outputs.changed == 'true'
@@ -124,7 +132,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: 'chore: update browser data from upstream'
-          title: 'Automated Data Update'
+          title: 'Automated Data Update ${{ steps.bump-version.outputs.version }}'
           body: |
             ## Automated Data Update
 
